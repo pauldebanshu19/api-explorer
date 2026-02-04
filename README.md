@@ -1,131 +1,93 @@
-# Tambo Template
+# Policy-Aware AI API Explorer
 
-This is a starter NextJS app with Tambo hooked up to get your AI app development started quickly.
+<div align="center">
+  <h3>🛡️ AI-Driven Security & Dynamic UI Generation 🛡️</h3>
+  <p>An intelligent API API Explorer that uses LLMs to analyze request safety in real-time and dynamically enforces UI restrictions.</p>
+</div>
 
-## Get Started
+---
 
-1. Run `npm create-tambo@latest my-tambo-app` for a new project
+## 💡 The Problem
+In modern AI applications, users often interact with APIs that can perform sensitive or dangerous operations. Traditional hard-coded RBAC (Role-Based Access Control) is rigid and often fails to capture the nuanced *intent* of a user's request.
 
-2. `npm install`
+## 🚀 The Solution
+The **Policy-Aware AI API Explorer** introduces a **Safety Layer** that sits between the user and the API. It uses:
+1.  **AI Analysis**: To understand the semantic intent and risk of a request.
+2.  **Dynamic Policies**: To generate a strict "UI Contract" on the fly.
+3.  **Generative UI**: To render an interface that physically prevents unsafe actions (e.g., locking buttons, hiding sensitive fields) based on that contract.
 
-3. `npx tambo init`
+## 🧠 Architecture
 
-- or rename `example.env.local` to `.env.local` and add your tambo API key you can get for free [here](https://tambo.co/dashboard).
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend as Next.js Frontend
+    participant Backend as FastAPI Backend
+    participant LLM as Gemini/OpenAI
+    participant Database as Supabase
 
-4. Run `npm run dev` and go to `localhost:3000` to use the app!
-
-## Customizing
-
-### Change what components tambo can control
-
-You can see how components are registered with tambo in `src/lib/tambo.ts`:
-
-```tsx
-export const components: TamboComponent[] = [
-  {
-    name: "Graph",
-    description:
-      "A component that renders various types of charts (bar, line, pie) using Recharts. Supports customizable data visualization with labels, datasets, and styling options.",
-    component: Graph,
-    propsSchema: graphSchema,
-  },
-  // Add more components here
-];
+    User->>Frontend: Selects API & Enters Intent
+    Frontend->>Backend: POST /analyze-api
+    Backend->>LLM: Analyze Risk (Threat, Sensitive, Urgency)
+    LLM-->>Backend: Safety Verdict
+    Backend->>Database: Log Verdict (Audit)
+    Backend->>Backend: Generate UI Plan (Rule Engine)
+    Backend-->>Frontend: Return UI Plan + Verdict
+    
+    rect rgb(20, 20, 20)
+        Note over Frontend: Dynamic Rendering
+        Frontend->>Frontend: Apply Restrictions (Lock Buttons, Show Warnings)
+        Frontend-->>User: Display Safe UI
+    end
 ```
 
-You can install the graph component into any project with:
+## ✨ Key Features
 
+- **🛡️ Real-Time Safety Analysis**: Instantly detects:
+  - **Threats**: Destructive actions (SQLi, deletions).
+  - **Sensitive Data**: PII, financial data, auth tokens.
+  - **Urgency**: Social engineering patterns.
+- **🎨 Dynamic UI Generation**: The frontend is "dumb" - it strictly follows the backend's UI Plan to:
+  - **Disable Execution**: Prevent "Send Request" for threats.
+  - **Hide Fields**: Redact sensitive parameter inputs.
+  - **Show Warnings**: Display contextual safety alerts.
+- **🔒 Supabase Integration**:
+  - Secure Authentication.
+  - **Row Level Security (RLS)** for user profiles/data.
+  - **Audit Logging** of all safety checks.
+
+## 🛠️ Tech Stack
+
+| Component | Technology | Role |
+|-----------|------------|------|
+| **Frontend** | Next.js 14, TailwindCSS, Framer Motion | Dynamic UI Rendering |
+| **Backend** | FastAPI, Python 3.10+ | Safety Logic & API Orchestration |
+| **Database** | Supabase (PostgreSQL) | Auth, Profiles, Logs |
+| **AI Model** | Google Gemini 1.5 / GPT-4o | Risk Analysis Engine |
+
+## ⚡ Quick Start
+
+### 1. Backend Setup
 ```bash
-npx tambo add graph
+cd backend
+pip install -r requirements.txt
+# Setup .env (see backend/README.md)
+uvicorn main:app --reload
 ```
 
-The example Graph component demonstrates several key features:
-
-- Different prop types (strings, arrays, enums, nested objects)
-- Multiple chart types (bar, line, pie)
-- Customizable styling (variants, sizes)
-- Optional configurations (title, legend, colors)
-- Data visualization capabilities
-
-Update the `components` array with any component(s) you want tambo to be able to use in a response!
-
-You can find more information about the options [here](https://docs.tambo.co/concepts/generative-interfaces/generative-components)
-
-### Add tools for tambo to use
-
-Tools are defined with `inputSchema` and `outputSchema`:
-
-```tsx
-export const tools: TamboTool[] = [
-  {
-    name: "globalPopulation",
-    description:
-      "A tool to get global population trends with optional year range filtering",
-    tool: getGlobalPopulationTrend,
-    inputSchema: z.object({
-      startYear: z.number().optional(),
-      endYear: z.number().optional(),
-    }),
-    outputSchema: z.array(
-      z.object({
-        year: z.number(),
-        population: z.number(),
-        growthRate: z.number(),
-      }),
-    ),
-  },
-];
+### 2. Frontend Setup
+```bash
+cd frontend
+npm install
+# Setup .env.local (see frontend/README.md)
+npm run dev
 ```
 
-Find more information about tools [here.](https://docs.tambo.co/concepts/tools)
+### 3. Explore
+Open [http://localhost:3000](http://localhost:3000) and try the demo endpoints:
+- **Safe**: `/api/weather` (Full UI access)
+- **Sensitive**: `/api/payments` (Restricted mode)
+- **Dangerous**: `/admin/users` (Blocked execution)
 
-### The Magic of Tambo Requires the TamboProvider
-
-Make sure in the TamboProvider wrapped around your app:
-
-```tsx
-...
-<TamboProvider
-  apiKey={process.env.NEXT_PUBLIC_TAMBO_API_KEY!}
-  components={components} // Array of components to control
-  tools={tools} // Array of tools it can use
->
-  {children}
-</TamboProvider>
-```
-
-In this example we do this in the `Layout.tsx` file, but you can do it anywhere in your app that is a client component.
-
-### Voice input
-
-The template includes a `DictationButton` component using the `useTamboVoice` hook for speech-to-text input.
-
-### MCP (Model Context Protocol)
-
-The template includes MCP support for connecting to external tools and resources. You can use the MCP hooks from `@tambo-ai/react/mcp`:
-
-- `useTamboMcpPromptList` - List available prompts from MCP servers
-- `useTamboMcpPrompt` - Get a specific prompt
-- `useTamboMcpResourceList` - List available resources
-
-See `src/components/tambo/mcp-components.tsx` for example usage.
-
-### Change where component responses are shown
-
-The components used by tambo are shown alongside the message response from tambo within the chat thread, but you can have the result components show wherever you like by accessing the latest thread message's `renderedComponent` field:
-
-```tsx
-const { thread } = useTambo();
-const latestComponent =
-  thread?.messages[thread.messages.length - 1]?.renderedComponent;
-
-return (
-  <div>
-    {latestComponent && (
-      <div className="my-custom-wrapper">{latestComponent}</div>
-    )}
-  </div>
-);
-```
-
-For more detailed documentation, visit [Tambo's official docs](https://docs.tambo.co).
+## 📄 License
+MIT License. Built for TamboAI Hackathon 2026.
